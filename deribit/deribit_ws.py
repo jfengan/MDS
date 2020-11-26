@@ -23,7 +23,7 @@ class DeribitRecorder(WSHandler):
 
     async def subscribe(self):
         channels = []
-        for symbol in self.symbols:
+        for symbol in self.symbols[0:2]:
             channel = ["trades.{}.raw".format(symbol), "book.{}.raw".format(symbol)]
             if symbol in ['BTC-PERPETUAL', 'ETH-PERPETUAL']:
                 channel.append("perpetual.{}.raw".format(symbol))
@@ -37,6 +37,17 @@ class DeribitRecorder(WSHandler):
             channels.append(message)
         await self.ws.send_message(message=channels)
 
+    async def heartbeat_service(self):
+        while True:
+            await self.ws.send_message([
+                {
+                    "jsonrpc": "2.0",
+                    "id": 9929,
+                    "method": "ping",
+                }
+            ])
+            await asyncio.sleep(3)
+
 
 if __name__ == "__main__":
     _symbols = get_symbols()
@@ -46,6 +57,7 @@ if __name__ == "__main__":
                                    symbols=_symbols)
         await recorder.connect(_loop=_loop)
         asyncio.ensure_future(recorder.process_data(), loop=_loop)
+        await recorder.heartbeat_service()
 
     loop = asyncio.get_event_loop()
     loop.run_until_complete(t(loop))

@@ -58,3 +58,7 @@ class WSHandler(object):
     @abstractmethod
     async def subscribe(self):
         raise NotImplementedError
+
+    @abstractmethod
+    async def heartbeat_service(self):
+        raise NotImplementedError
