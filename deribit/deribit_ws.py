@@ -17,25 +17,42 @@ class DeribitRecorder(WSHandler):
         self.logger.addHandler(log)
         super().__init__(url, logger=self.logger)
         self.symbols = symbols
+        self.index_names = ['btc_usd', 'eth_usd']
 
     def decode(self, data):
         return data
 
     async def subscribe(self):
+        # subscribe index price
+        index_channels = []
+        for index_name in self.index_names:
+            self.logger.info('subscribing {} index price and etc.'.format(index_name))
+            index_channels.append("deribit_price_index.{}".format(index_name))
+            index_channels.append("deribit_price_ranking.{}".format(index_name))
+            index_channels.append("estimated_expiration_price.{}".format(index_name))
+            index_channels.append("markprice.options.{}".format(index_name))
+        message = {"jsonrpc": "2.0",
+                   "method": "public/subscribe",
+                   "id": 42,
+                   "params": {"channels": index_channels}
+                   }
+        await self.ws.send_message([message])
+
+        # subscribe tickers of symbols
         channels = []
-        for symbol in self.symbols[0:2]:
-            channel = ["trades.{}.raw".format(symbol), "book.{}.raw".format(symbol)]
+        for symbol in self.symbols:
+            channels.append("trades.{}.raw".format(symbol))
+            channels.append("book.{}.raw".format(symbol))
             if symbol in ['BTC-PERPETUAL', 'ETH-PERPETUAL']:
-                channel.append("perpetual.{}.raw".format(symbol))
-            channel.append("quote.{}".format(symbol))
-            channel.append("ticker.{}.raw".format(symbol))
-            message = {"jsonrpc": "2.0",
-                       "method": "public/subscribe",
-                       "id": 42,
-                       "params": {"channels": channel}
-                       }
-            channels.append(message)
-        await self.ws.send_message(message=channels)
+                channels.append("perpetual.{}.raw".format(symbol))
+            channels.append("quote.{}".format(symbol))
+            channels.append("ticker.{}.raw".format(symbol))
+        message = {"jsonrpc": "2.0",
+                   "method": "public/subscribe",
+                   "id": 42,
+                   "params": {"channels": channels}
+                   }
+        await self.ws.send_message([message])
 
     async def heartbeat_service(self):
         while True:
