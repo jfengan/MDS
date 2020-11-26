@@ -19,18 +19,34 @@ class DeribitRecorder(WSHandler):
         self.symbols = symbols
         self.index_names = ['btc_usd', 'eth_usd']
 
+    @staticmethod
+    def get_index_channel(index: list):
+        index_channels = []
+        for index_name in index:
+            index_channels.append("deribit_price_index.{}".format(index_name))
+            index_channels.append("deribit_price_ranking.{}".format(index_name))
+            index_channels.append("estimated_expiration_price.{}".format(index_name))
+            index_channels.append("markprice.options.{}".format(index_name))
+        return index_channels
+
+    @staticmethod
+    def get_symbol_channel(symbols: list):
+        channels = []
+        for symbol in symbols:
+            channels.append("trades.{}.raw".format(symbol))
+            channels.append("book.{}.raw".format(symbol))
+            if symbol in ['BTC-PERPETUAL', 'ETH-PERPETUAL']:
+                channels.append("perpetual.{}.raw".format(symbol))
+            channels.append("quote.{}".format(symbol))
+            channels.append("ticker.{}.raw".format(symbol))
+        return channels
+
     def decode(self, data):
         return data
 
     async def subscribe(self):
         # subscribe index price
-        index_channels = []
-        for index_name in self.index_names:
-            self.logger.info('subscribing {} index price and etc.'.format(index_name))
-            index_channels.append("deribit_price_index.{}".format(index_name))
-            index_channels.append("deribit_price_ranking.{}".format(index_name))
-            index_channels.append("estimated_expiration_price.{}".format(index_name))
-            index_channels.append("markprice.options.{}".format(index_name))
+        index_channels = self.get_index_channel(index=self.index_names)
         message = {"jsonrpc": "2.0",
                    "method": "public/subscribe",
                    "id": 42,
@@ -39,18 +55,11 @@ class DeribitRecorder(WSHandler):
         await self.ws.send_message([message])
 
         # subscribe tickers of symbols
-        channels = []
-        for symbol in self.symbols:
-            channels.append("trades.{}.raw".format(symbol))
-            channels.append("book.{}.raw".format(symbol))
-            if symbol in ['BTC-PERPETUAL', 'ETH-PERPETUAL']:
-                channels.append("perpetual.{}.raw".format(symbol))
-            channels.append("quote.{}".format(symbol))
-            channels.append("ticker.{}.raw".format(symbol))
+        symbol_channels = self.get_symbol_channel(symbols=self.symbols)
         message = {"jsonrpc": "2.0",
                    "method": "public/subscribe",
                    "id": 42,
-                   "params": {"channels": channels}
+                   "params": {"channels": symbol_channels}
                    }
         await self.ws.send_message([message])
 
