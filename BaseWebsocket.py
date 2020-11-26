@@ -50,10 +50,10 @@ class WSBaseServer(object):
                 self.callback_when_data(msg)
             elif msg.type == aiohttp.WSMsgType.CLOSED:
                 self.logger.info("Closed: {}".format(msg))
-                #await self.callback_when_close()
+                # await self.callback_when_close()
             elif msg.type == aiohttp.WSMsgType.ERROR:
                 self.logger.info("Error: {}".format(msg))
-                #await self.callback_when_error()
+                # await self.callback_when_error()
             else:
                 self.logger.warning("receive msg {} with type {}. Not recognized. Ignore"
                                     .format(msg.data, msg.type))
