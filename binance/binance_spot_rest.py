@@ -79,5 +79,5 @@ if __name__ == "__main__":
         if _start_ts >= _end_ts:
             logger.Info(f"No updates for binance spot: {_symbol[0]}")
         else:
-            logger.Info(f"Start pulling kline of binance from {_start_ts} to {_end_ts}: {_symbol[0]}")
+            logger.Info(f"Start pulling kline of binance spot {_symbol[0]} from {_start_ts} to {_end_ts}")
             bn_kline.get_klines(symbol=_symbol, freq=60, start_ts=_start_ts, end_ts=int(_end_ts))
