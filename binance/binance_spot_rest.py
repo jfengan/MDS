@@ -4,14 +4,14 @@ import time
 from datetime import datetime, timedelta
 from DBConnector import DBConnector, WriteConnector
 from functions import Logger
+from optparse import OptionParser
 
 logger = Logger()
 
 
 class Binance_Spot_Rest(object):
-    def __init__(self):
-        self.db_connection = DBConnector(name='public')
-        self.connector = WriteConnector(name="public").get_connector()
+    def __init__(self, name):
+        self.connector = WriteConnector(name=name).get_connector()
         self.session = requests.session()
         self.url = "https://api.binance.com"
         self.__freq_mapping = {
@@ -62,16 +62,16 @@ class Binance_Spot_Rest(object):
             start_ts += 60 * 1000
 
 
-
-if __name__ == "__main__":
+def pull_binance_spot_klines(name):
     _end_str = datetime.now().strftime("%Y-%m-%d")
-    _end_ts = (datetime.strptime(_end_str, "%Y-%m-%d") - timedelta(days=1)).timestamp()
-    bn_kline = Binance_Spot_Rest()
+    _end_ts = int((datetime.strptime(_end_str, "%Y-%m-%d") - timedelta(days=1)).timestamp())
+    bn_kline = Binance_Spot_Rest(name=name)
+    db_connection = DBConnector(name=name)
     symbols = bn_kline.get_instruments()
     base_sql = "SELECT max(start_datetime) from binance_spot_official_klines where global_symbol="
     for _symbol in symbols:
         sql = base_sql + f"'SPOT-{_symbol[1]}/{_symbol[2]}'"
-        _start_ts = bn_kline.db_connection.run_query(sql=sql)
+        _start_ts = db_connection.run_query(sql=sql)
         if _start_ts[0][0] is None:
             _start_ts = int(datetime(2019, 1, 1).timestamp())
         else:
@@ -80,4 +80,15 @@ if __name__ == "__main__":
             logger.Info(f"No updates for binance spot: {_symbol[0]}")
         else:
             logger.Info(f"Start pulling kline of binance spot {_symbol[0]} from {_start_ts} to {_end_ts}")
-            bn_kline.get_klines(symbol=_symbol, freq=60, start_ts=_start_ts, end_ts=int(_end_ts))
+            bn_kline.get_klines(symbol=_symbol, freq=60, start_ts=_start_ts, end_ts=_end_ts)
+
+
+
+if __name__ == "__main__":
+    parse = OptionParser()
+    parse.add_option('-f', dest='is_prod', action='store_true')
+    (optional_params, args) = parse.parse_args()
+    if optional_params.is_prod:
+        pull_binance_spot_klines(name='crypto')
+    else:
+        pull_binance_spot_klines(name='public')
