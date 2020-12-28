@@ -32,7 +32,7 @@ class FTX(object):
 
     def _get_kline_from_api(self, symbol, start: int, end: int, freq):
         klines = []
-        while start + 2000 * freq < end:
+        while start < end:
             this_url = self.url + f"/markets/{symbol}/candles?resolution={freq}&limit=2000" \
                                   f"&start_time={start}&end_time={min(start + freq * 1999, end)}"
             data = self.session.get(this_url).json()
