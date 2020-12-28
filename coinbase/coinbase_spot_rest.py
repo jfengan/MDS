@@ -30,7 +30,7 @@ class CoinBase(object):
 
     def _get_hist_klines(self, symbol: str, start_ts: int, end_ts: int, freq: int):
         klines = []
-        while start_ts < end_ts:
+        while start_ts + 299 * freq < end_ts:
             start = datetime.fromtimestamp(start_ts).replace(microsecond=0).isoformat()
             end = datetime.fromtimestamp(start_ts + 299 * freq).replace(microsecond=0).isoformat()
             this_url = self.url + f"/products/{symbol}" \
@@ -39,6 +39,12 @@ class CoinBase(object):
             klines.extend(data.json())
             start_ts += 300 * freq
             time.sleep(0.2)
+        start = datetime.fromtimestamp(start_ts).replace(microsecond=0).isoformat()
+        end = datetime.fromtimestamp(end_ts-60).replace(microsecond=0).isoformat()
+        this_url = self.url + f"/products/{symbol}" \
+                   + "/candles?start={}&end={}&granularity={}".format(start, end, freq)
+        data = self.session.get(this_url)
+        klines.extend(data.json())
         return klines
 
 
