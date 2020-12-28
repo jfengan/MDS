@@ -66,7 +66,7 @@ def pull_coinbase_kline():
                 logger.Critical(str(ex))
                 logger.Error(f"Failed to pull kline: COINBASE SPOT: {coin}")
         else:
-            logger.Info(f"No update for COINBASE SPOT: {coin}")
+            logger.Info(f"Currently no update for COINBASE SPOT: {coin}")
 
 
 if __name__ == "__main__":
