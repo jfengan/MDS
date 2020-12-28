@@ -21,7 +21,7 @@ class FTX(object):
 
     def fetch_kline(self, symbol, start_ts: int, end_ts: int, freq=60):
         data = self._get_kline_from_api(symbol=symbol, start=start_ts, end=end_ts, freq=freq)
-        #print(data)
+        # print(data)
         data['start_datetime'] = data['startTime'].apply(lambda x: int(datetime.fromisoformat(x).timestamp()))
         del data['startTime']
         del data['time']
@@ -30,16 +30,19 @@ class FTX(object):
         data.to_sql(name='ftx_spot_official_klines', con=self.connection, if_exists='append',
                     method='multi', index=False)
 
-
     def _get_kline_from_api(self, symbol, start: int, end: int, freq):
         klines = []
-        while start < end:
+        while start + 2000 * freq < end:
             this_url = self.url + f"/markets/{symbol}/candles?resolution={freq}&limit=2000" \
-                                  f"&start_time={start}&end_time={start+freq * 1999}"
+                                  f"&start_time={start}&end_time={start + freq * 1999}"
             data = self.session.get(this_url).json()
             klines.extend(data['result'])
             start += 2000 * freq
             time.sleep(0.01)
+        this_url = self.url + f"/markets/{symbol}/candles?resolution={freq}&limit=2000" \
+                              f"&start_time={start}&end_time={end-60}"
+        data = self.session.get(this_url).json()
+        klines.extend(data['result'])
         klines = pd.DataFrame(klines)
         return klines
 
@@ -50,7 +53,7 @@ def pull_spot_klines(name, freq=60):
     sql = "SELECT max(start_datetime) from ftx_spot_official_klines where global_symbol="
     db_helper = DBConnector(name=name)
     _end_str = datetime.now().strftime("%Y-%m-%d")
-    _end_ts = int((datetime.strptime(_end_str, "%Y-%m-%d") - timedelta(days=1)).timestamp())
+    _end_ts = int((datetime.strptime(_end_str, "%Y-%m-%d")).timestamp())
     for _symbol in symbols:
         this_sql = sql + f"'SPOT-{_symbol}'"
         _start_ts = db_helper.run_query(sql=this_sql)
