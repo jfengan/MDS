@@ -34,15 +34,11 @@ class FTX(object):
         klines = []
         while start + 2000 * freq < end:
             this_url = self.url + f"/markets/{symbol}/candles?resolution={freq}&limit=2000" \
-                                  f"&start_time={start}&end_time={start + freq * 1999}"
+                                  f"&start_time={start}&end_time={min(start + freq * 1999, end)}"
             data = self.session.get(this_url).json()
             klines.extend(data['result'])
             start += 2000 * freq
             time.sleep(0.01)
-        this_url = self.url + f"/markets/{symbol}/candles?resolution={freq}&limit=2000" \
-                              f"&start_time={start}&end_time={end-60}"
-        data = self.session.get(this_url).json()
-        klines.extend(data['result'])
         klines = pd.DataFrame(klines)
         return klines
 
