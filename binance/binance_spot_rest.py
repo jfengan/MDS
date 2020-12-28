@@ -9,6 +9,9 @@ from optparse import OptionParser
 logger = Logger()
 
 
+const_pairs = ['BTC', 'ETH', 'BNB', 'USDT', 'USDC']
+
+
 class Binance_Spot_Rest(object):
     def __init__(self, name):
         self.connector = WriteConnector(name=name).get_connector()
@@ -31,7 +34,8 @@ class Binance_Spot_Rest(object):
 
     def get_instruments(self):
         data = self.session.get(self.url + '/api/v3/exchangeInfo').json()
-        return [[item['symbol'], item['baseAsset'], item['quoteAsset']] for item in data['symbols']]
+        return [[item['symbol'], item['baseAsset'], item['quoteAsset']] for item in data['symbols']
+                if item['baseAsset'] in const_pairs or item['quoteAsset'] in const_pairs]
 
     def __get_kline_by_instrument(self, instrument_name, start_datetime, end_datetime, freq, base_asset, quote_asset):
         data = self.session.get(self.url + "/api/v3/klines?symbol={}&interval={}&limit=1500&startTime={}&endTime={}".
@@ -49,7 +53,7 @@ class Binance_Spot_Rest(object):
         else:
             return None
 
-    def get_klines(self, symbol: list, freq, start_ts: int, end_ts: int):
+    def fetch_kline(self, symbol: list, freq, start_ts: int, end_ts: int):
         while start_ts < end_ts:
             data = self.__get_kline_by_instrument(instrument_name=symbol[0], start_datetime=start_ts,
                                                   end_datetime=start_ts + 60 * 999, freq=freq, base_asset=symbol[1],
@@ -58,7 +62,7 @@ class Binance_Spot_Rest(object):
                 data = data[data['start_datetime'] < end_ts]
                 data.to_sql(name='binance_spot_official_klines', index=False, if_exists='append',
                             con=self.connector, method='multi')
-                time.sleep(0.1)
+                time.sleep(0.01)
             start_ts += 60 * 1000
 
 
@@ -79,8 +83,12 @@ def pull_binance_spot_klines(name):
         if _start_ts >= _end_ts:
             logger.Info(f"No updates for binance spot: {_symbol[0]}")
         else:
-            logger.Info(f"Start pulling kline of binance spot {_symbol[0]} from {_start_ts} to {_end_ts}")
-            bn_kline.get_klines(symbol=_symbol, freq=60, start_ts=_start_ts, end_ts=_end_ts)
+            try:
+                logger.Info(f"Start pulling klines: BINANCE SPOT: {_symbol[0]} from {_start_ts} to {_end_ts}")
+                bn_kline.fetch_kline(symbol=_symbol, freq=60, start_ts=_start_ts, end_ts=_end_ts)
+            except Exception as ex:
+                logger.Critical(str(ex))
+                logger.Error(f"Failed to pull klines for Binance Spot: {_symbol}")
 
 
 
