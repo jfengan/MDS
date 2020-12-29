@@ -48,8 +48,8 @@ def pull_spot_klines(name, freq=60):
     symbols = ftx_mds.get_instruments()
     sql = "SELECT max(start_datetime) from ftx_spot_official_klines where global_symbol="
     db_helper = DBConnector(name=name)
-    _end_str = datetime.now().strftime("%Y-%m-%d")
-    _end_ts = int((datetime.strptime(_end_str, "%Y-%m-%d")).timestamp())
+    _end_ts = datetime.now().timestamp()
+    _end_ts = (_end_ts // 60 - 1) * 60
     for _symbol in symbols:
         this_sql = sql + f"'SPOT-{_symbol}'"
         _start_ts = db_helper.run_query(sql=this_sql)
